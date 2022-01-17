@@ -10,13 +10,13 @@ import sys
 import paho.mqtt.client as mqtt
 
 import secrets
+import functions
 
 mqtt_on = True
-
+logfile = "weissenstein-info.log"  # "" = disabled
 
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " \
              "Chrome/96.0.4664.45 Safari/537.36"
-
 options = webdriver.ChromeOptions()
 options.headless = True
 options.add_argument(f'user-agent={user_agent}')
@@ -40,20 +40,15 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
     try:
         driver = webdriver.Chrome(options=options)
 
-        # The callback for when the client receives a CONNACK response from the server.
-        def on_connect(client, userdata, flags, rc):
-            print("MQQT connected with result code " + str(rc))
-
-            # Subscribing in on_connect() means that if we lose the connection and
-            # reconnect then subscriptions will be renewed.
-            client.subscribe("weissenstein/control/#")
-
-        control = {
-            'onoff': '',
-            'delay': 3600  # Sekunden (Intervall Datenabruf)
-        }
-
         if mqtt_on:
+            # The callback for when the client receives a CONNACK response from the server.
+            def on_connect(client, userdata, flags, rc):
+                print("MQQT connected with result code " + str(rc))
+
+                # Subscribing in on_connect() means that if we lose the connection and
+                # reconnect then subscriptions will be renewed.
+                client.subscribe("weissenstein/control/#")
+
             # The callback for when a PUBLISH message is received from the server.
             def on_message(client, userdata, msg):
                 received = str(msg.payload.decode("utf-8"))
@@ -75,45 +70,56 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
             # Other loop*() functions are available that give a threaded interface and a
             # manual interface.
             client.loop_start()
+        # End mqtt init
 
-        data = {}
+        control = {
+            'onoff': '',
+            'delay': 3600  # Sekunden (Intervall Datenabruf)
+        }
+
+        info = {}
 
         x = 0
-        while x in range(1):  # Endlosschleife mit "while True" oder begrenzt mit "while x in range(n)>" oder gesteuert mit "while control['onoff'] != "stop""
+        while control['onoff'] != "stop":  # Endlosschleife mit "while True" oder begrenzt mit "while x in range(n)>" oder gesteuert mit "while control['onoff'] != "stop""
             if x > 0:
                 time.sleep(int(control['delay']))
-            else:
-                client.publish('weissenstein/status', payload='Abfrage gestartet')
+            elif mqtt_on:
+                client.publish('weissenstein/status', payload='Abfrage Weissenstein-Info gestartet')
+
             x += 1
+
+            last_info = info  # Initiieren für späteren check, ob upgedated
+            changed = False  # Beginnen mit False - wird später True, wenn mind. ein Element geändert hat
 
             # Seilbahn Weissenstein
             driver.get('https://seilbahn-weissenstein.ch/')
             element = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.header-navigation'))
             )
-            time.sleep(0)
-
-            value = driver.find_element(By.CSS_SELECTOR, 'div.centered-wrapper-inner div p')
-
-            # print(value.get_attribute('innerHTML'))
-            print(value.text)
-            client.publish('weissenstein/seilbahn', payload=str(value.text))
+            info['seilbahn'] = driver.find_element(By.CSS_SELECTOR, 'div.centered-wrapper-inner div p').text
 
             # Hinterweissenstein Strassensperre
             driver.get('https://www.hinterweissenstein.ch/')
+            time.sleep(0)
+            info['strasse'] = driver.find_element(By.CSS_SELECTOR, '#text-4').text
 
-            value = driver.find_element(By.CSS_SELECTOR, '#text-4')
+            info["timestamp"] = datetime.datetime.now()
+            info["loop"] = x
 
-            # print(value.get_attribute('innerHTML'))
-            print(value.text)
-            client.publish('weissenstein/strasse', payload=str(value.text))
-
-            data["Timestamp"] = datetime.datetime.now()
-            data["Date"] = datetime.datetime.now().strftime("%d.%m.%Y")
-            data["Time"] = datetime.datetime.now().strftime("%H:%M:%S")
-
-            # functions.printdata(data)
-            # functions.writefile(data)
+            functions.printdata(info)
+            for item in info:
+                if mqtt_on:
+                    client.publish(f'weissenstein/{item}', payload=f'{info[item]}')
+                if item in last_info and item not in ['timestamp', 'loop']:
+                    if info[item] != last_info[item] or changed:
+                        changed = True
+                    else:
+                        changed = False
+            if changed:
+                functions.writefile(logfile, info)
+                print(f'Daten in {logfile} geschrieben\n')
+            else:
+                print(f'Daten unverändert - kein Eintrag in {logfile}')
 
             abrufversuche = 0  # zurücksetzen, wenn alles ordentlich läuft
 
@@ -121,9 +127,11 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
 
     except:
         print(f'Fehler beim Abruf der Weissenstein-Informationen (Versuch {abrufversuche}): ', sys.exc_info())
-        client.publish('weissenstein/status', payload=f'Fehler beim Abruf der Weissenstein-Infos (Versuch {abrufversuche}): {sys.exc_info()}')
+        if mqtt_on:
+            client.publish('weissenstein/status', payload=f'Fehler beim Abruf der Weissenstein-Infos (Versuch {abrufversuche}): {sys.exc_info()}')
 
     driver.close()
-    client.loop_stop()
+    if mqtt_on:
+        client.loop_stop()
 
 print('Abruf Weisstenstein-Info wurde beendet.')
