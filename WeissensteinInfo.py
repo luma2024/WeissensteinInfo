@@ -74,7 +74,7 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
 
         control = {
             'onoff': '',
-            'delay': 3600  # Sekunden (Intervall Datenabruf)
+            'delay': 4*60*60  # Sekunden (Intervall Datenabruf)
         }
 
         info = {}
@@ -89,7 +89,7 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
             x += 1
 
             last_info = info  # Initiieren für späteren check, ob upgedated
-            changed = False  # Beginnen mit False - wird später True, wenn mind. ein Element geändert hat
+            changed = True  # Beginnen mit True - wird später False, wenn sich nichts geändert hat
 
             # Seilbahn Weissenstein
             driver.get('https://seilbahn-weissenstein.ch/')
@@ -111,10 +111,10 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
                 if mqtt_on:
                     client.publish(f'weissenstein/{item}', payload=f'{info[item]}')
                 if item in last_info and item not in ['timestamp', 'loop']:
-                    if info[item] != last_info[item] or changed:
-                        changed = True
-                    else:
+                    if info[item] == last_info[item] and not changed:
                         changed = False
+                    else:
+                        changed = True
             if changed:
                 functions.writefile(logfile, info)
                 print(f'Daten in {logfile} geschrieben\n')
