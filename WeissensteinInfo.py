@@ -75,7 +75,7 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
 
         control = {
             'onoff': '',
-            'delay': 30 # 4*60*60  # Sekunden (Intervall Datenabruf)
+            'delay': 4*60*60  # Sekunden (Intervall Datenabruf)
         }
 
         info = {}
@@ -97,7 +97,9 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
             element = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.header-navigation'))
             )
-            info['seilbahn'] = driver.find_element(By.CSS_SELECTOR, 'div.centered-wrapper-inner div p').text
+            seilbahninfo = driver.find_element(By.CSS_SELECTOR, 'div.centered-wrapper-inner div p').text.split('\n')
+            for i in seilbahninfo:
+                info[f'seilbahn{seilbahninfo.index(i)}'] = i
 
             # Hinterweissenstein Strassensperre
             driver.get('https://www.hinterweissenstein.ch/')
