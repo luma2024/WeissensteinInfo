@@ -74,7 +74,7 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
 
         control = {
             'onoff': '',
-            'delay': 4*60*60  # Sekunden (Intervall Datenabruf)
+            'delay': 30 # 4*60*60  # Sekunden (Intervall Datenabruf)
         }
 
         info = {}
