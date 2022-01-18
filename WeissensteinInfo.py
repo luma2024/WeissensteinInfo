@@ -104,12 +104,12 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
             time.sleep(0)
             info['strasse'] = driver.find_element(By.CSS_SELECTOR, '#text-4').text
 
-            info["timestamp"] = datetime.datetime.now()
+            info["timestamp"] = str(datetime.datetime.now())
             info["loop"] = x
 
             functions.printdata(info)
             if mqtt_on:
-                client.publish('weissenstein/info', payload=json.dump(info))
+                client.publish('weissenstein/info', payload=json.dumps(info))
 
             for item in info:
                 if item in last_info and item not in ['timestamp', 'loop']:
