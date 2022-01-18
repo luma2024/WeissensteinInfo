@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import datetime
 import sys
+import json
 import paho.mqtt.client as mqtt
 
 import secrets
@@ -107,9 +108,10 @@ for abrufversuche in range(1):  # Anzahl Versuche im Fehlerfall
             info["loop"] = x
 
             functions.printdata(info)
+            if mqtt_on:
+                client.publish('weissenstein/info', payload=json.dump(info))
+
             for item in info:
-                if mqtt_on:
-                    client.publish(f'weissenstein/{item}', payload=f'{info[item]}')
                 if item in last_info and item not in ['timestamp', 'loop']:
                     if info[item] == last_info[item] and not changed:
                         changed = False
