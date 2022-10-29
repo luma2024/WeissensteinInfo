@@ -97,7 +97,7 @@ for abrufversuche in range(10):  # Anzahl Versuche im Fehlerfall
             element = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.header-navigation'))
             )
-            seilbahninfo = driver.find_element(By.CSS_SELECTOR, 'div.centered-wrapper-inner div p').text.split('\n')
+            seilbahninfo = driver.find_element(By.CSS_SELECTOR, 'div.centered-wrapper-inner div h4').text.split('\n')
             for i in seilbahninfo:
                 info[f'seilbahn{seilbahninfo.index(i)}'] = i
 
@@ -109,9 +109,9 @@ for abrufversuche in range(10):  # Anzahl Versuche im Fehlerfall
 
         try:
             # Hinterweissenstein Strassensperre
-            driver.get('https://www.hotelweissenstein.ch/de/')
+            driver.get('https://www.welschenrohr.ch/neuigkeiten/verkehrsinfo-bergstrassenoev/')
             time.sleep(0)
-            strasseninfo = driver.find_elements(By.CSS_SELECTOR, '#column-id-1564491838094 .sppb-addon-text')
+            strasseninfo = driver.find_elements(By.CSS_SELECTOR, '.plf-text-wrapper .contenttable~.contenttable tr')
             for i in strasseninfo:
                 info[f'strasse{strasseninfo.index(i)}'] = i.text
 
