@@ -12,4 +12,4 @@ Einstellung via MQTT:
 - Topic "weissenstein/control/delay": Intervall für Abfrage in Sekunden (Standard 4h)
 - Topic "weissenstein/control/onoff": "stop" zum Anhalten (kein Start oder Neustart möglich)
 
-- Hallo Test Luis
+- Hallo Test Luis.
